@@ -1335,6 +1335,7 @@ gboolean is_in_blacklist(GPtrArray* tokens) {
 		}
 		if (i == len) return TRUE;
 	} else if (token->token_id == TK_SQL_SET) {
+	  /*
 		if (tokens->len >= 5) {
 			token = tokens->pdata[2];
 			if (strcasecmp(token->text->str, "AUTOCOMMIT") == 0) {
@@ -1342,6 +1343,7 @@ gboolean is_in_blacklist(GPtrArray* tokens) {
 				if (token->token_id == TK_EQ) return TRUE;
 			}
 		}
+	  */
 	}
 
 	for (i = 2; i < len; ++i) {
@@ -1393,11 +1395,21 @@ NETWORK_MYSQLD_PLUGIN_PROTO(proxy_read_query) {
 		GPtrArray *tokens = sql_tokens_new();
 		sql_tokenizer(tokens, packets->str, packets->len);
 
-		if (type == COM_QUERY && is_in_blacklist(tokens)) {
+		sql_token* token_test = tokens->pdata[1];
+		if(type==COM_QUERY && token_test->token_id == TK_SQL_SET){
+		  //autocommit,skip
+		  token_test = tokens->pdata[2];
+		  if (strcasecmp(token_test->text->str, "AUTOCOMMIT") == 0) {
+		    network_mysqld_con_send_ok_full(con->client, 0, 0, 0x0002, 0);
+		    ret = PROXY_SEND_RESULT;
+		  }
+		}
+		if (ret!=PROXY_SEND_RESULT && type == COM_QUERY && is_in_blacklist(tokens)) {
 			g_string_free(packets, TRUE);
 			network_mysqld_con_send_error_full(con->client, C("Proxy Warning - Syntax Forbidden"), ER_UNKNOWN_ERROR, "07000");
 			ret = PROXY_SEND_RESULT;
 		} else {
+
 			GPtrArray* sqls = NULL;
 			if (type == COM_QUERY && con->config->tables) {
 				sqls = sql_parse(con, tokens);
