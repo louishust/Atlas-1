@@ -1394,7 +1394,7 @@ NETWORK_MYSQLD_PLUGIN_PROTO(proxy_read_query) {
 	} else {
 		GPtrArray *tokens = sql_tokens_new();
 		sql_tokenizer(tokens, packets->str, packets->len);
-		sql_token* token_test = tokens->pdata[1];
+
 		if (type == COM_QUERY && is_in_blacklist(tokens)) {
 			g_string_free(packets, TRUE);
 			network_mysqld_con_send_error_full(con->client, C("Proxy Warning - Syntax Forbidden"), ER_UNKNOWN_ERROR, "07000");
@@ -1458,6 +1458,7 @@ NETWORK_MYSQLD_PLUGIN_PROTO(proxy_read_query) {
 			check_flags(tokens, con);
 
 			if (con->server == NULL) {
+			  sql_token* token_test = tokens->pdata[1];
 			  gboolean is_autocommit=FALSE;
 			  if(type==COM_QUERY && token_test->token_id == TK_SQL_SET){
 			    //autocommit,set tag

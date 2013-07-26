@@ -892,8 +892,6 @@ void network_mysqld_con_handle(int event_fd, short events, void *user_data) {
 		 *   or -1 and EPIPE on HP/UX
 		 */
 		if (ioctl(event_fd, FIONREAD, &b)) {
-		  printf("%d,%s",errno,g_strerror(errno));
-
 			switch (errno) {
 			case E_NET_CONNRESET: /* solaris */
 			case EPIPE: /* hp/ux */
