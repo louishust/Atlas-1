@@ -1394,17 +1394,8 @@ NETWORK_MYSQLD_PLUGIN_PROTO(proxy_read_query) {
 	} else {
 		GPtrArray *tokens = sql_tokens_new();
 		sql_tokenizer(tokens, packets->str, packets->len);
-
 		sql_token* token_test = tokens->pdata[1];
-		if(type==COM_QUERY && token_test->token_id == TK_SQL_SET){
-		  //autocommit,skip
-		  token_test = tokens->pdata[2];
-		  if (strcasecmp(token_test->text->str, "AUTOCOMMIT") == 0) {
-		    network_mysqld_con_send_ok_full(con->client, 0, 0, 0x0002, 0);
-		    ret = PROXY_SEND_RESULT;
-		  }
-		}
-		if (ret!=PROXY_SEND_RESULT && type == COM_QUERY && is_in_blacklist(tokens)) {
+		if (type == COM_QUERY && is_in_blacklist(tokens)) {
 			g_string_free(packets, TRUE);
 			network_mysqld_con_send_error_full(con->client, C("Proxy Warning - Syntax Forbidden"), ER_UNKNOWN_ERROR, "07000");
 			ret = PROXY_SEND_RESULT;
@@ -1467,9 +1458,17 @@ NETWORK_MYSQLD_PLUGIN_PROTO(proxy_read_query) {
 			check_flags(tokens, con);
 
 			if (con->server == NULL) {
+			  gboolean is_autocommit=FALSE;
+			  if(type==COM_QUERY && token_test->token_id == TK_SQL_SET){
+			    //autocommit,set tag
+			    token_test = tokens->pdata[2];
+			    if (strcasecmp(token_test->text->str, "AUTOCOMMIT") == 0) {
+			      is_autocommit=TRUE;
+			    }
+			  }
 				int backend_ndx = -1;
 
-				if (!con->is_in_transaction && g_hash_table_size(con->locks) == 0) {
+				if (!is_autocommit && !con->is_in_transaction && g_hash_table_size(con->locks) == 0) {
 					if (type == COM_QUERY) {
 						backend_ndx = rw_split(tokens, con);
 						//g_mutex_lock(&mutex);
