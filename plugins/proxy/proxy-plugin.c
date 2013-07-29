@@ -475,6 +475,7 @@ GPtrArray* sql_parse(network_mysqld_con* con, GPtrArray* tokens) {
 }
 
 int idle_rw(network_mysqld_con* con) {
+  g_debug("idle rw");
 	int ret = -1;
 	guint i;
 
@@ -498,6 +499,7 @@ int idle_rw(network_mysqld_con* con) {
 }
 
 int idle_ro(network_mysqld_con* con) {
+  g_debug("idle ro");
 	int max_conns = -1;
 	guint i;
 
@@ -522,6 +524,8 @@ int idle_ro(network_mysqld_con* con) {
 }
 
 int wrr_ro(network_mysqld_con *con) {
+  g_debug("wrr ro");
+
 	guint i;
 
 	network_backends_t* backends = con->srv->priv->backends;
@@ -1387,6 +1391,7 @@ NETWORK_MYSQLD_PLUGIN_PROTO(proxy_read_query) {
 	}
 
 	char type = packets->str[0];
+	
 	if (type == COM_QUIT) {
 		g_string_free(packets, TRUE);
 		network_mysqld_con_send_ok_full(con->client, 0, 0, 0x0002, 0);
@@ -1394,6 +1399,10 @@ NETWORK_MYSQLD_PLUGIN_PROTO(proxy_read_query) {
 	} else {
 		GPtrArray *tokens = sql_tokens_new();
 		sql_tokenizer(tokens, packets->str, packets->len);
+
+		sql_token* token_test = tokens->pdata[1];
+		g_debug(token_test->text->str);
+	
 
 		if (type == COM_QUERY && is_in_blacklist(tokens)) {
 			g_string_free(packets, TRUE);
@@ -1467,6 +1476,7 @@ NETWORK_MYSQLD_PLUGIN_PROTO(proxy_read_query) {
 			      is_autocommit=TRUE;
 			    }
 			  }
+
 				int backend_ndx = -1;
 
 				if (!is_autocommit && !con->is_in_transaction && g_hash_table_size(con->locks) == 0) {
@@ -1484,6 +1494,7 @@ NETWORK_MYSQLD_PLUGIN_PROTO(proxy_read_query) {
 				}
 
 				if (send_sock == NULL) {
+				  g_debug("send_sock==NULL");
 					backend_ndx = idle_rw(con);
 					//g_mutex_lock(&mutex);
 					send_sock = network_connection_pool_lua_swap(con, backend_ndx);
