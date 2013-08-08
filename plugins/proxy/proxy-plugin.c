@@ -1402,7 +1402,6 @@ NETWORK_MYSQLD_PLUGIN_PROTO(proxy_read_query) {
 
 		sql_token* token_test = tokens->pdata[1];
 		g_debug(token_test->text->str);
-	
 
 		if (type == COM_QUERY && is_in_blacklist(tokens)) {
 			g_string_free(packets, TRUE);
